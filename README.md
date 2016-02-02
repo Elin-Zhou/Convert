@@ -12,7 +12,7 @@
   也可在spring中配置映射关系，例如：
 
 
-        <bean class="cn.yumei.common.util.Convert$ClassMapper" id="classMapper">
+        <bean class="com.elin4it.util.convert.Convert$ClassMapper" id="classMapper">
         <constructor-arg>
         <map>
         <!--key和value可互换，顺序无影响-->
