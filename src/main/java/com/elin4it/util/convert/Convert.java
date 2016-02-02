@@ -9,58 +9,58 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 /**
- * 2016/2/1更新
- * 支持级联拷贝，例如Front1中有一个字段类型为Front2，需要把Front1转换为Behind1，Behind1中有个字段为Behind2，该字段由Front2转换而来
- * 级联拷贝不限定级联层数，但禁止循环级联，如Front1中包含Front2,Front2中包含Front1
- * 使用方法：
- * 1、创建转换类时传入ClassMapper类，调用该类add(Class,Class)方法添加映射关系
- * 也可在spring中配置映射关系，例如：
- * <bean class="cn.yumei.common.util.Convert$ClassMapper" id="classMapper">
- * <constructor-arg>
- * <map>
- * <!--key和value可互换，顺序无影响-->
- * <entry key="com.yumei.merchant.common.dal.dataobject.MerchantContact"
- * value="com.yumei.merchant.common.service.facade.model.MerchantContactBehind"/>
- * <entry key="com.yumei.merchant.common.dal.dataobject.MerchantOrderLink"
- * value="com.yumei.merchant.common.service.facade.model.OrderLinkBehind"/>
- * </map>
- * </constructor-arg>
- * </bean>
- * 2、通常两个类型的字段名称不同，所以Front继承ConvertAlias，调用父类add(String,String)方法设置别名
- * <p/>
- * <p/>
- * <p/>
- * 2016/1/19更新
- * 支持自动拆箱装箱(之前仅支持Boolean和boolean)
- * byte <==> Byte
- * boolean <==> Boolean
- * short <==> Short
- * char <==> Character
- * int <==>Integer
- * long <==>Long
- * float <==>Float
- * double <==> Frontuble
- * <p/>
- * <p/>
- * <p/>
- * 2016/1/14更新
- * 1、支持从父类字段拷贝到子类字段
- * 2、修复入参为null时的异常BUG
- * 3、修复当两个对象同时存在某一字段，但不存在set或get方法时抛出异常的BUG
- * <p/>
- * <p/>
- * <p/>
- * 2016/1/4 更新
- * 1、支持直接父类字段的拷贝，要求该字段必须拥有set和get/is方法，同样支持各种类型的转换
- * 默认关闭拷贝功能，开启需要设置copySuperClassFields
- * 2、将convert2BehindList、convert2FrontList、convert2BehindPageList、convert2FrontPageList设置为过时方法，请使用convert2Behind和convert2Front的重载方法
- * <p/>
- * <p/>
- * 1、把两个类中同名且同类型的字段进行拷贝
- * 2、两个类中同名，一方为枚举，则尝试通过其枚举创建字段进行拷贝，默认枚举创建字段为code和value，可添加
- * 4、两个类中同名，一方为String，另一方为Boolean/boolean
- * 5、两个类中同名，一方为Boolean，另一方为boolean
- * 5、支持别名。需要在Front继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
+  2016/2/1更新
+  支持级联拷贝，例如Front1中有一个字段类型为Front2，需要把Front1转换为Behind1，Behind1中有个字段为Behind2，该字段由Front2转换而来
+  级联拷贝不限定级联层数，但禁止循环级联，如Front1中包含Front2,Front2中包含Front1
+  使用方法：
+  1、创建转换类时传入ClassMapper类，调用该类add(Class,Class)方法添加映射关系
+  也可在spring中配置映射关系，例如：
+  <bean class="cn.yumei.common.util.Convert$ClassMapper" id="classMapper">
+  <constructor-arg>
+  <map>
+  <!--key和value可互换，顺序无影响-->
+  <entry key="com.yumei.merchant.common.dal.dataobject.MerchantContact"
+  value="com.yumei.merchant.common.service.facade.model.MerchantContactBehind"/>
+  <entry key="com.yumei.merchant.common.dal.dataobject.MerchantOrderLink"
+  value="com.yumei.merchant.common.service.facade.model.OrderLinkBehind"/>
+  </map>
+  </constructor-arg>
+  </bean>
+  2、通常两个类型的字段名称不同，所以Front继承ConvertAlias，调用父类add(String,String)方法设置别名
+  <p/>
+  <p/>
+  <p/>
+  2016/1/19更新
+  支持自动拆箱装箱(之前仅支持Boolean和boolean)
+  byte <==> Byte
+  boolean <==> Boolean
+  short <==> Short
+  char <==> Character
+  int <==>Integer
+  long <==>Long
+  float <==>Float
+  double <==> Frontuble
+  <p/>
+  <p/>
+  <p/>
+  2016/1/14更新
+  1、支持从父类字段拷贝到子类字段
+  2、修复入参为null时的异常BUG
+  3、修复当两个对象同时存在某一字段，但不存在set或get方法时抛出异常的BUG
+  <p/>
+  <p/>
+  <p/>
+  2016/1/4 更新
+  1、支持直接父类字段的拷贝，要求该字段必须拥有set和get/is方法，同样支持各种类型的转换
+  默认关闭拷贝功能，开启需要设置copySuperClassFields
+  2、将convert2BehindList、convert2FrontList、convert2BehindPageList、convert2FrontPageList设置为过时方法，请使用convert2Behind和convert2Front的重载方法
+  <p/>
+  <p/>
+  1、把两个类中同名且同类型的字段进行拷贝
+  2、两个类中同名，一方为枚举，则尝试通过其枚举创建字段进行拷贝，默认枚举创建字段为code和value，可添加
+  4、两个类中同名，一方为String，另一方为Boolean/boolean
+  5、两个类中同名，一方为Boolean，另一方为boolean
+  5、支持别名。需要在Front继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
  *
  * @author ElinZhou
  * @version $Id: Convert.java, v 0.1 2015年10月22日 上午8:55:21 ElinZhou Exp $
@@ -258,39 +258,6 @@ public class Convert<F, B> {
         return outs;
     }
 
-    /**
-     * 将Front List转换为Behind List
-     *
-     * @param ins        Front List
-     * @param behindClass Behind的类类型
-     * @return
-     * @deprecated 已过时方法，请使用conver2Behind重载方法
-     */
-    @Deprecated
-    public List<B> convert2BehindList(List<F> ins, Class<B> behindClass) {
-        List<B> outs = new ArrayList<B>();
-        for (F in : ins) {
-            outs.add(convert2Behind(in, behindClass));
-        }
-        return outs;
-    }
-
-    /**
-     * 将Behind List转换为Front List
-     *
-     * @param ins     Behind List
-     * @param doClass Front的类类型
-     * @return
-     * @deprecated 已过时方法，请使用conver2Front重载方法
-     */
-    @Deprecated
-    public List<F> convert2FrontList(List<B> ins, Class<F> doClass) {
-        List<F> outs = new ArrayList<F>();
-        for (B in : ins) {
-            outs.add(conver2Front(in, doClass));
-        }
-        return outs;
-    }
 
     private Object convert(Object in, Class<?> inClass, Class<?> outClass) {
         try {
