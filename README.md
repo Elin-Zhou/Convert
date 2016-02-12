@@ -1,5 +1,5 @@
 # Convert
-##功能：将一个类中的数据拷贝到另一个类中
+##功能：转换两个Class的数据
 ##作者(Author):夕下奕林(ElinZhou)
 
 
@@ -34,7 +34,7 @@
 * int <==>Integer
 * long <==>Long
 * float <==>Float
-* double <==> Frontuble
+* double <==> Double
 
 
 
