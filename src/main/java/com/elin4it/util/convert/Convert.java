@@ -1,5 +1,5 @@
 /*
- * Yumeitech.com Inc.
+ * elin4it Inc.
  * Copyright (c) 2004-2016 All Rights Reserved.
  */
 package com.elin4it.util.convert;
@@ -8,64 +8,47 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 
+
 /**
-  2016/2/1更新
-  支持级联拷贝，例如Front1中有一个字段类型为Front2，需要把Front1转换为Behind1，Behind1中有个字段为Behind2，该字段由Front2转换而来
-  级联拷贝不限定级联层数，但禁止循环级联，如Front1中包含Front2,Front2中包含Front1
-  使用方法：
-  1、创建转换类时传入ClassMapper类，调用该类add(Class,Class)方法添加映射关系
-  也可在spring中配置映射关系，例如：
-  <bean class="cn.yumei.common.util.Convert$ClassMapper" id="classMapper">
-  <constructor-arg>
-  <map>
-  <!--key和value可互换，顺序无影响-->
-  <entry key="com.yumei.merchant.common.dal.dataobject.MerchantContact"
-  value="com.yumei.merchant.common.service.facade.model.MerchantContactBehind"/>
-  <entry key="com.yumei.merchant.common.dal.dataobject.MerchantOrderLink"
-  value="com.yumei.merchant.common.service.facade.model.OrderLinkBehind"/>
-  </map>
-  </constructor-arg>
-  </bean>
-  2、通常两个类型的字段名称不同，所以Front继承ConvertAlias，调用父类add(String,String)方法设置别名
-  <p/>
-  <p/>
-  <p/>
-  2016/1/19更新
-  支持自动拆箱装箱(之前仅支持Boolean和boolean)
-  byte <==> Byte
-  boolean <==> Boolean
-  short <==> Short
-  char <==> Character
-  int <==>Integer
-  long <==>Long
-  float <==>Float
-  double <==> Frontuble
-  <p/>
-  <p/>
-  <p/>
-  2016/1/14更新
-  1、支持从父类字段拷贝到子类字段
-  2、修复入参为null时的异常BUG
-  3、修复当两个对象同时存在某一字段，但不存在set或get方法时抛出异常的BUG
-  <p/>
-  <p/>
-  <p/>
-  2016/1/4 更新
-  1、支持直接父类字段的拷贝，要求该字段必须拥有set和get/is方法，同样支持各种类型的转换
-  默认关闭拷贝功能，开启需要设置copySuperClassFields
-  2、将convert2BehindList、convert2FrontList、convert2BehindPageList、convert2FrontPageList设置为过时方法，请使用convert2Behind和convert2Front的重载方法
-  <p/>
-  <p/>
-  1、把两个类中同名且同类型的字段进行拷贝
-  2、两个类中同名，一方为枚举，则尝试通过其枚举创建字段进行拷贝，默认枚举创建字段为code和value，可添加
-  4、两个类中同名，一方为String，另一方为Boolean/boolean
-  5、两个类中同名，一方为Boolean，另一方为boolean
-  5、支持别名。需要在Front继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
+
+ ##2016/1/19更新
+ 支持自动拆箱装箱(之前仅支持Boolean和boolean)
+ * byte <==> Byte
+ * boolean <==> Boolean
+ * short <==> Short
+ * char <==> Character
+ * int <==>Integer
+ * long <==>Long
+ * float <==>Float
+ * double <==> Double
+
+
+ ##2016/1/14更新
+ * 支持从父类字段拷贝到子类字段
+ * 修复入参为null时的异常BUG
+ * 修复当两个对象同时存在某一字段，但不存在set或get方法时抛出异常的BUG
+
+
+
+ ##2016/1/4 更新
+ * 持直接父类字段的拷贝，要求该字段必须拥有set和get/is方法，同样支持各种类型的转换,默认关闭拷贝功能，开启需要设置copySuperClassFields
+ * 将convert2ModelList、convert2DOList、convert2ModelPageList、convert2DOPageList设置为过时方法，请使用convert2Model和convert2DO的重载方法
+
+
+ ##实现功能
+ * 把两个类中同名且同类型的字段进行拷贝
+ * 两个类中同名，一方为枚举，则尝试通过其枚举创建字段进行拷贝，默认枚举创建字段为code和value，可添加
+ * 两个类中同名，一方为Money，另一方为BigDecimal
+ * 两个类中同名，一方为String，另一方为Boolean/boolean
+ * 两个类中同名，一方为Boolean，另一方为boolean
+ * 支持别名。需要在DO继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
+
+
  *
  * @author ElinZhou
  * @version $Id: Convert.java, v 0.1 2015年10月22日 上午8:55:21 ElinZhou Exp $
  */
-public class Convert<F, B> {
+public class Convert<D, M> {
 
     private String[]     initCreateEnumStrings = { "code", "value" };
     private List<String> createEnumStrings     = null;
@@ -73,16 +56,21 @@ public class Convert<F, B> {
      * 是否拷贝父类字段，默认关闭
      */
     private boolean      copySuperClassFields  = false;
+
+    /**
+     * 拷贝父类字段代数，如1表示只拷贝直接父类的字段，负数表示不限,默认不限
+     */
+    private int          copySuperClassGenerations = -1;
     /**
      * 是否级联拷贝，默认关闭
      */
     private boolean      copyCascade           = false;
     private ClassMapper  classMapper;
 
-    private Class[] bases    = { byte.class, boolean.class, short.class, char.class, int.class,
-                                 long.class, float.class, double.class };
-    private Class[] packages = { Byte.class, Boolean.class, Short.class, Character.class,
-                                 Integer.class, Long.class, Float.class, Double.class };
+    private Class[]      bases                     = { byte.class, boolean.class, short.class,
+            char.class, int.class, long.class, float.class, double.class };
+    private Class[]      packages                  = { Byte.class, Boolean.class, Short.class,
+            Character.class, Integer.class, Long.class, Float.class, Double.class };
 
     public Convert() {
         createEnumStrings = new ArrayList<String>();
@@ -118,12 +106,36 @@ public class Convert<F, B> {
     }
 
     /**
-     * 判断是否开启对父类字段的拷贝
+     * 从orig中将与dest同名同类型的字段拷贝过去
      *
-     * @return
+     * @param dest                目标对象（不为空）
+     * @param orig                源对象（不为空）
+     * @param copySuperClassField 是否对进行父类（直接父类）字段也拷贝
+     * @throws Exception
      */
-    public boolean isCopySuperClassFields() {
-        return copySuperClassFields;
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static void copyProperties(Object dest, Object orig, Boolean copySuperClassField)
+                                                                                            throws Exception {
+        if (dest == null || orig == null) {
+            throw new Exception("参数不能为null");
+        }
+        Convert convert = new Convert(copySuperClassField);
+        convert.convert(orig, dest, orig.getClass(), dest.getClass());
+    }
+
+    /**
+     * 从orig中将与dest同名同类型的字段拷贝过去
+     *
+     * @param dest 目标对象（不为空）
+     * @param orig 源对象（不为空）
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static void copyProperties(Object dest, Object orig) throws Exception {
+        if (dest == null || orig == null) {
+            throw new Exception("参数不能为null");
+        }
+        Convert convert = new Convert();
+        convert.convert(orig, dest, orig.getClass(), dest.getClass());
     }
 
     /**
@@ -135,42 +147,12 @@ public class Convert<F, B> {
         this.copySuperClassFields = copySuperClassField;
     }
 
-    public void setCopySuperClassFields(boolean copySuperClassField) {
-        this.copySuperClassFields = copySuperClassField;
-    }
-
     /**
-     * 从orig中将与dest同名同类型的字段拷贝过去
-     *
-     * @param dest                目标对象（不为空）
-     * @param orig                源对象（不为空）
-     * @param copySuperClassField 是否对进行父类（直接父类）字段也拷贝
-     * @throws Exception
+     * 拷贝父类字段代数，如1表示只拷贝直接父类的字段，负数表示不限
+     * @param copySuperClassGenerations
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static boolean copyProperties(Object dest, Object orig, Boolean copySuperClassField) {
-        if (dest == null || orig == null) {
-            return false;
-        }
-        Convert convert = new Convert(copySuperClassField);
-        convert.convert(orig, dest, orig.getClass(), dest.getClass());
-        return true;
-    }
-
-    /**
-     * 从orig中将与dest同名同类型的字段拷贝过去
-     *
-     * @param dest 目标对象（不为空）
-     * @param orig 源对象（不为空）
-     */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static boolean copyProperties(Object dest, Object orig) {
-        if (dest == null || orig == null) {
-            return false;
-        }
-        Convert convert = new Convert();
-        convert.convert(orig, dest, orig.getClass(), dest.getClass());
-        return true;
+    public void setCopySuperClassGenerations(int copySuperClassGenerations) {
+        this.copySuperClassGenerations = copySuperClassGenerations;
     }
 
     /**
@@ -193,78 +175,272 @@ public class Convert<F, B> {
     }
 
     /**
-     * 将Front转换为Behind
+     * 将DO转换为Model
      *
-     * @param in         Front
-     * @param behindClass Behind的类类型
+     * @param in         DO
+     * @param modelClass Model的类类型
      * @return
      */
     @SuppressWarnings("unchecked")
-    public B convert2Behind(F in, Class<B> behindClass) {
+    public M convert2Model(D in, Class<M> modelClass) {
         if (in == null) {
             return null;
         }
-        return (B) convert(in, in.getClass(), behindClass);
+        return (M) convert(in, in.getClass(), modelClass);
     }
 
     /**
-     * 将Front List转换为Behind List
+     * 将DO List转换为Model List
      *
-     * @param ins        Front List
-     * @param behindClass Behind的类类型
+     * @param ins        DO List
+     * @param modelClass Model的类类型
      * @return
      */
-    public List<B> convert2Behind(List<F> ins, Class<B> behindClass) {
+    public List<M> convert2Model(List<D> ins, Class<M> modelClass) {
         if (ins == null) {
             return null;
         }
-        List<B> outs = new ArrayList<B>();
-        for (F in : ins) {
-            outs.add(convert2Behind(in, behindClass));
+        List<M> outs = new ArrayList<M>();
+        for (D in : ins) {
+            outs.add(convert2Model(in, modelClass));
         }
         return outs;
     }
 
     /**
-     * 将Behind转换为Front
+     * 将DO List转换为Model List
      *
-     * @param in      Behind
-     * @param doClass Front的类类型
+     * @param ins        DO List
+     * @param modelClass Model的类类型
+     * @param convertInvoker 转换执行器
      * @return
      */
-    @SuppressWarnings("unchecked")
-    public F conver2Front(B in, Class<F> doClass) {
-        if (in == null) {
-            return null;
-        }
-        return (F) convert(in, in.getClass(), doClass);
-    }
-
-    /**
-     * 将Behind List转换为Front List
-     *
-     * @param ins     Behind List
-     * @param doClass Front的类类型
-     * @return
-     */
-    public List<F> conver2Front(List<B> ins, Class<F> doClass) {
+    public List<M> convert2Model(List<D> ins, Class<M> modelClass, ConvertInvoker<M> convertInvoker) {
         if (ins == null) {
             return null;
         }
-        List<F> outs = new ArrayList<F>();
-        for (B in : ins) {
-            outs.add(conver2Front(in, doClass));
+        List<M> outs = new ArrayList<M>();
+        for (D in : ins) {
+            M m = convert2Model(in, modelClass);
+            m = convertInvoker.invoke(m);
+            outs.add(m);
         }
         return outs;
     }
 
+    /**
+     * 将DO PageList转换为Model PageList
+     *
+     * @param ins        DO List
+     * @param modelClass Model的类类型
+     * @return
+     */
+    public PageList<M> convert2Model(PageList<D> ins, Class<M> modelClass) {
+        if (ins == null) {
+            return null;
+        }
+        PageList<M> outs = new PageList<M>();
+        outs.setPaginator(ins.getPaginator());
+        for (D in : ins) {
+            outs.add(convert2Model(in, modelClass));
+        }
+        return outs;
+    }
+
+    /**
+     * 将DO PageList转换为Model PageList
+     *
+     * @param ins        DO List
+     * @param modelClass Model的类类型
+     * @param convertInvoker 转换执行器
+     * @return
+     */
+    public PageList<M> convert2Model(PageList<D> ins, Class<M> modelClass,
+                                     ConvertInvoker<M> convertInvoker) {
+        if (ins == null) {
+            return null;
+        }
+        PageList<M> outs = new PageList<M>();
+        outs.setPaginator(ins.getPaginator());
+        for (D in : ins) {
+            M m = convert2Model(in, modelClass);
+            m = convertInvoker.invoke(m);
+            outs.add(m);
+        }
+        return outs;
+    }
+
+    /**
+     * 将Model转换为DO
+     *
+     * @param in      Model
+     * @param doClass DO的类类型
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public D conver2DO(M in, Class<D> doClass) {
+        if (in == null) {
+            return null;
+        }
+        return (D) convert(in, in.getClass(), doClass);
+    }
+
+    /**
+     * 将Model List转换为DO List
+     *
+     * @param ins     Model List
+     * @param doClass DO的类类型
+     * @return
+     */
+    public List<D> conver2DO(List<M> ins, Class<D> doClass) {
+        if (ins == null) {
+            return null;
+        }
+        List<D> outs = new ArrayList<D>();
+        for (M in : ins) {
+            outs.add(conver2DO(in, doClass));
+        }
+        return outs;
+    }
+
+    /**
+     * 将Model List转换为DO List
+     *
+     * @param ins     Model List
+     * @param doClass DO的类类型
+     * @param convertInvoker 转换执行器
+     * @return
+     */
+    public List<D> conver2DO(List<M> ins, Class<D> doClass, ConvertInvoker<D> convertInvoker) {
+        if (ins == null) {
+            return null;
+        }
+        List<D> outs = new ArrayList<D>();
+        for (M in : ins) {
+            D d = conver2DO(in, doClass);
+            d = convertInvoker.invoke(d);
+            outs.add(d);
+        }
+        return outs;
+    }
+
+    /**
+     * 将Model PageList转换为DO PageList
+     *
+     * @param ins     Model List
+     * @param doClass DO的类类型
+     * @return
+     */
+    public PageList<D> conver2DO(PageList<M> ins, Class<D> doClass) {
+        if (ins == null) {
+            return null;
+        }
+        PageList<D> outs = new PageList<D>();
+        outs.setPaginator(ins.getPaginator());
+        for (M in : ins) {
+            outs.add(conver2DO(in, doClass));
+        }
+        return outs;
+    }
+
+    /**
+     * 将Model PageList转换为DO PageList
+     *
+     * @param ins     Model List
+     * @param doClass DO的类类型
+     * @param convertInvoker 类型转换器
+     * @return
+     */
+    public PageList<D> conver2DO(PageList<M> ins, Class<D> doClass, ConvertInvoker<D> convertInvoker) {
+        if (ins == null) {
+            return null;
+        }
+        PageList<D> outs = new PageList<D>();
+        outs.setPaginator(ins.getPaginator());
+        for (M in : ins) {
+            D d = conver2DO(in, doClass);
+            d = convertInvoker.invoke(d);
+            outs.add(d);
+        }
+        return outs;
+    }
+
+    /**
+     * 将DO List转换为Model List
+     *
+     * @param ins        DO List
+     * @param modelClass Model的类类型
+     * @return
+     * @deprecated 已过时方法，请使用conver2Model重载方法
+     */
+    @Deprecated
+    public List<M> convert2ModelList(List<D> ins, Class<M> modelClass) {
+        List<M> outs = new ArrayList<M>();
+        for (D in : ins) {
+            outs.add(convert2Model(in, modelClass));
+        }
+        return outs;
+    }
+
+    /**
+     * 将Model List转换为DO List
+     *
+     * @param ins     Model List
+     * @param doClass DO的类类型
+     * @return
+     * @deprecated 已过时方法，请使用conver2DO重载方法
+     */
+    @Deprecated
+    public List<D> convert2DOList(List<M> ins, Class<D> doClass) {
+        List<D> outs = new ArrayList<D>();
+        for (M in : ins) {
+            outs.add(conver2DO(in, doClass));
+        }
+        return outs;
+    }
+
+    /**
+     * 将DO PageList转换为Model PageList
+     *
+     * @param ins        DO List
+     * @param modelClass Model的类类型
+     * @return Model PageList
+     * @deprecated 已过时方法，请使用conver2Model重载方法
+     */
+    @Deprecated
+    public PageList<M> convert2ModelPageList(PageList<D> ins, Class<M> modelClass) {
+        PageList<M> outs = new PageList<M>();
+        outs.setPaginator(ins.getPaginator());
+        for (D in : ins) {
+            outs.add(convert2Model(in, modelClass));
+        }
+        return outs;
+    }
+
+    /**
+     * 将Model PageList转换为DO PageList
+     *
+     * @param ins     Model List
+     * @param doClass DO的类类型
+     * @return
+     * @deprecated 已过时方法，请使用conver2DO重载方法
+     */
+    @Deprecated
+    public PageList<D> convert2DOPageList(PageList<M> ins, Class<D> doClass) {
+        PageList<D> outs = new PageList<D>();
+        outs.setPaginator(ins.getPaginator());
+        for (M in : ins) {
+            outs.add(conver2DO(in, doClass));
+        }
+        return outs;
+    }
 
     private Object convert(Object in, Class<?> inClass, Class<?> outClass) {
         try {
             Object out = outClass.newInstance();
             return convert(in, out, inClass, outClass);
         } catch (Exception e) {
-            throw new RuntimeException("类型转换出错:{}", e);
+            throw new RuntimeException("类型转换出错:", e);
         }
     }
 
@@ -288,29 +464,29 @@ public class Convert<F, B> {
                 //判断是否使用了别名
                 List<ConvertAlias.Tuple> aliasList;
                 if (in instanceof ConvertAlias) {
-                    //如果inClass继承自ConvertAlias，则inClass为Front
+                    //如果inClass继承自ConvertAlias，则inClass为DO
 
                     Method getAliasMethod = inClass.getMethod("getAliasList");
                     //获得别名列表
                     aliasList = (List<ConvertAlias.Tuple>) getAliasMethod.invoke(in);
 
                     for (ConvertAlias.Tuple tuple : aliasList) {
-                        if (tuple.getFrontFieldName().equals(inFieldName)) {
-                            outFieldName = tuple.getBehindFieldName();
+                        if (tuple.getDoFieldName().equals(inFieldName)) {
+                            outFieldName = tuple.getModelFieldName();
                             break;
                         }
                     }
 
                 } else if (out instanceof ConvertAlias) {
-                    //如果outClass继承自ConvertAlias，则outClass为Front
+                    //如果outClass继承自ConvertAlias，则outClass为DO
 
                     Method getAliasMethod = outClass.getMethod("getAliasList");
                     //获得别名列表
                     aliasList = (List<ConvertAlias.Tuple>) getAliasMethod.invoke(out);
 
                     for (ConvertAlias.Tuple tuple : aliasList) {
-                        if (tuple.getBehindFieldName().equals(inFieldName)) {
-                            outFieldName = tuple.getFrontFieldName();
+                        if (tuple.getModelFieldName().equals(inFieldName)) {
+                            outFieldName = tuple.getDoFieldName();
                             break;
                         }
                     }
@@ -346,6 +522,7 @@ public class Convert<F, B> {
                         setValue(inFieldName, outFieldName, inFieldType, outFieldType, in, out);
                     }
                 } catch (NoSuchFieldException e) {
+                    //DO NOTHING
                 }
 
             }
@@ -363,7 +540,7 @@ public class Convert<F, B> {
                     //判断是否使用了别名
                     List<ConvertAlias.Tuple> aliasList;
                     if (in instanceof ConvertAlias) {
-                        //如果inClass继承自ConvertAlias，则inClass为Front
+                        //如果inClass继承自ConvertAlias，则inClass为DO
 
                         Method getAliasMethod = inClass.getMethod("getAliasList");
                         //获得别名列表
@@ -371,22 +548,22 @@ public class Convert<F, B> {
 
                         for (ConvertAlias.Tuple tuple : aliasList) {
                             //如果别名列表中存在in的当前字段
-                            if (tuple.getFrontFieldName().equals(entry.getKey())) {
-                                outFieldName = tuple.getBehindFieldName();
+                            if (tuple.getDoFieldName().equals(entry.getKey())) {
+                                outFieldName = tuple.getModelFieldName();
                                 break;
                             }
                         }
 
                     } else if (out instanceof ConvertAlias) {
-                        //如果outClass继承自ConvertAlias，则outClass为Front
+                        //如果outClass继承自ConvertAlias，则outClass为DO
 
                         Method getAliasMethod = outClass.getMethod("getAliasList");
                         //获得别名列表
                         aliasList = (List<ConvertAlias.Tuple>) getAliasMethod.invoke(out);
 
                         for (ConvertAlias.Tuple tuple : aliasList) {
-                            if (tuple.getBehindFieldName().equals(entry.getKey())) {
-                                outFieldName = tuple.getFrontFieldName();
+                            if (tuple.getModelFieldName().equals(entry.getKey())) {
+                                outFieldName = tuple.getDoFieldName();
                                 break;
                             }
                         }
@@ -416,11 +593,12 @@ public class Convert<F, B> {
                                 in, out);
                         }
                     } catch (NoSuchFieldException e) {
+                        //DO NOTHING
                     }
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("类型转换出错:{}", e);
+            throw new RuntimeException("类型转换出错:", e);
         }
 
         return out;
@@ -451,8 +629,8 @@ public class Convert<F, B> {
                 outFirstWord.toUpperCase());
 
             String inFirstWord = inFieldName.substring(0, 1);
-            String inSubFieldName = inFieldName.replaceFirst(inFirstWord,
-                inFirstWord.toUpperCase());
+            String inSubFieldName = inFieldName
+                .replaceFirst(inFirstWord, inFirstWord.toUpperCase());
 
             Method getMethod;
             Method setMethod;
@@ -530,11 +708,8 @@ public class Convert<F, B> {
                             setMethod.invoke(out, object);
                         }
                     }
-                } else
-                    if ((outFieldType == String.class
-                         && (inFieldType == Boolean.class || inFieldType == boolean.class))
-                        || (inFieldType == String.class
-                            && (outFieldType == Boolean.class || outFieldType == boolean.class))) {
+                } else if ((outFieldType == String.class && (inFieldType == Boolean.class || inFieldType == boolean.class))
+                           || (inFieldType == String.class && (outFieldType == Boolean.class || outFieldType == boolean.class))) {
                     //一方为String,另一方为boolean/Boolean
                     if (outFieldType == String.class) {
                         Boolean object = (Boolean) getMethod.invoke(in);
@@ -561,13 +736,13 @@ public class Convert<F, B> {
 
                     Object inFieldObject = getMethod.invoke(in);
                     Convert innerConver = new Convert(classMapper);
-                    Object outFieldObject = innerConver.convert2Behind(inFieldObject, outFieldType);
+                    Object outFieldObject = innerConver.convert2Model(inFieldObject, outFieldType);
                     setMethod.invoke(out, outFieldObject);
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(
-                "数据拷贝阶段出错，源字段名：" + inFieldName + " 目标字段名：" + outFieldName + " 错误信息:{}", e);
+            throw new RuntimeException("数据拷贝阶段出错，源字段名：" + inFieldName + " 目标字段名：" + outFieldName
+                                       + " 错误信息:", e);
         }
 
     }
@@ -594,6 +769,7 @@ public class Convert<F, B> {
                 try {
                     field = e.getClass().getDeclaredField(s);
                 } catch (NoSuchFieldException exception) {
+                    //DO NOTHING
                 }
             }
 
@@ -606,6 +782,7 @@ public class Convert<F, B> {
                         break;
                     }
                 } catch (Exception exception) {
+                    //DO NOTHING
                 }
             }
 
@@ -630,6 +807,7 @@ public class Convert<F, B> {
             try {
                 field = enumObject.getClass().getDeclaredField(s);
             } catch (NoSuchFieldException exception) {
+                //DO NOTHING
             }
         }
 
@@ -649,72 +827,84 @@ public class Convert<F, B> {
     @SuppressWarnings("rawtypes")
     private Map<String, Class> getSuperClassFieldName(Class c) {
         Class superClass = c.getSuperclass();
+
         Map<String, Class> fieldMap = new HashMap<String, Class>();
         Map<String, Class> confirmMap = new HashMap<String, Class>();
-        if (superClass == null) {
-            return fieldMap;
-        }
-        Method[] allMethods = superClass.getMethods();
-        for (Method method : allMethods) {
-            if (method.getDeclaringClass() == superClass) {
-                String methodName = method.getName();
-                String fieldName;
-                if (methodName.startsWith("set") || methodName.startsWith("get")
-                    || methodName.startsWith("is")) {
 
-                    //获得其字段名
-                    if (methodName.startsWith("is")) {
+        int count = 0;
 
-                        fieldName = methodName.substring(2, methodName.length());
-                    } else {
-                        fieldName = methodName.substring(3, methodName.length());
-                    }
-                    //该方法的标记类型，set方法为其入参，get为其返回值
-                    Class flagClass;
-                    if (methodName.startsWith("set")) {
-                        //由于该方法为set或get/is方法，所以有且只有一个参数
-                        Class[] parameterTypesmethod = method.getParameterTypes();
-                        if (parameterTypesmethod.length != 1) {
-                            continue;
-                        }
-                        flagClass = parameterTypesmethod[0];
-                    } else {
-                        Class resultClass = method.getReturnType();
-                        if (resultClass == null) {
-                            continue;
+        while (superClass != null) {
+            count++;
+            //判断是否到了设定的拷贝父类代数
+            if (copySuperClassGenerations > 0 && count > copySuperClassGenerations) {
+                break;
+            }
+            Method[] allMethods = superClass.getMethods();
+            for (Method method : allMethods) {
+                if (method.getDeclaringClass() == superClass) {
+                    String methodName = method.getName();
+                    String fieldName;
+                    if (methodName.startsWith("set") || methodName.startsWith("get")
+                        || methodName.startsWith("is")) {
+
+                        //获得其字段名
+                        if (methodName.startsWith("is")) {
+                            fieldName = methodName.substring(2, methodName.length());
                         } else {
-                            flagClass = resultClass;
+                            fieldName = methodName.substring(3, methodName.length());
                         }
-                    }
-
-                    //判断是否有记录该字段，如果有则判断记录中的字段标记类型和当前的标记类型是否相同
-                    //如果相同则把value置为null做标记
-                    //如果不存在，则添加到记录中
-                    if (fieldMap.containsKey(fieldName)) {
-                        Class fieldClass = fieldMap.get(fieldName);
-                        if (fieldClass != null && flagClass != null) {
-
-                            if (fieldClass == flagClass) {
-                                //此时表示有成对的set或get方法出现,则value设置为null作为标记
-                                fieldMap.put(fieldName, null);
-                                confirmMap.put(fieldName, fieldClass);
+                        //该方法的标记类型，set方法为其入参，get为其返回值
+                        Class flagClass;
+                        if (methodName.startsWith("set")) {
+                            //由于该方法为set或get/is方法，所以有且只有一个参数
+                            Class[] parameterTypesmethod = method.getParameterTypes();
+                            if (parameterTypesmethod.length != 1) {
+                                continue;
+                            }
+                            flagClass = parameterTypesmethod[0];
+                        } else {
+                            Class resultClass = method.getReturnType();
+                            if (resultClass == null) {
+                                continue;
+                            } else {
+                                flagClass = resultClass;
                             }
                         }
-                    } else {
-                        fieldMap.put(fieldName, flagClass);
+
+                        //此处判断是否用成对的set和get方法，而且需要保证其类型相同
+                        //判断是否有记录该字段，如果有则判断记录中的字段标记类型和当前的标记类型是否相同
+                        //如果相同则把value置为null做标记
+                        //如果不存在，则添加到记录中
+                        if (fieldMap.containsKey(fieldName)) {
+                            Class fieldClass = fieldMap.get(fieldName);
+                            if (fieldClass != null && flagClass != null) {
+
+                                if (fieldClass == flagClass) {
+                                    //此时表示有成对的set或get方法出现,则value设置为null作为标记
+                                    fieldMap.put(fieldName, null);
+                                    confirmMap.put(fieldName, fieldClass);
+                                }
+                            }
+                        } else {
+                            fieldMap.put(fieldName, flagClass);
+                        }
                     }
                 }
             }
+            superClass = superClass.getSuperclass();
+
         }
 
         //对所有的记录进行判断
-        Set<Map.Entry<String, Class>> entrySet = fieldMap.entrySet();
-        for (Map.Entry<String, Class> entry : entrySet) {
-            if (entry.getValue() != null) {
-
-                fieldMap.remove(entry.getKey());
-            }
-        }
+        //        Set<Map.Entry<String, Class>> entrySet = fieldMap.entrySet();
+        //
+        //        Iterator<Map.Entry<String, Class>> iterator = entrySet.iterator();
+        //        if (iterator.hasNext()) {
+        //            if (iterator.next().getValue() != null) {
+        //                //删除必须使用迭代器删除，否则会报ConcurrentModificationException
+        //                iterator.remove();
+        //            }
+        //        }
 
         return confirmMap;
 
@@ -757,14 +947,6 @@ public class Convert<F, B> {
     public static class ClassMapper {
         private Set<Tuple> tuples = new HashSet<Tuple>();
 
-        public Set<Tuple> getTuples() {
-            return tuples;
-        }
-
-        public void setTuples(Set<Tuple> tuples) {
-            this.tuples = tuples;
-        }
-
         public ClassMapper() {
         }
 
@@ -780,6 +962,14 @@ public class Convert<F, B> {
             for (Map.Entry<String, String> entry : tuples.entrySet()) {
                 this.tuples.add(new Tuple(entry.getKey(), entry.getValue()));
             }
+        }
+
+        public Set<Tuple> getTuples() {
+            return tuples;
+        }
+
+        public void setTuples(Set<Tuple> tuples) {
+            this.tuples = tuples;
         }
 
         /**
@@ -897,11 +1087,4 @@ public class Convert<F, B> {
 
     }
 
-    /*********************************************************
-     * 测试内容
-     **************************************************************************/
-
-    public static void main(String[] args) throws Exception {
-
-    }
 }
