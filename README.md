@@ -1,6 +1,7 @@
 # Convert
 ##功能：转换两个Class的数据
 ##作者(Author):夕下奕林(ElinZhou)
+##原项目地址：https://github.com/Elin-Zhou/Convert
 
 
 ###2016/2/1更新
@@ -54,3 +55,29 @@
   4. 两个类中同名，一方为String，另一方为Boolean/boolean
   5. 两个类中同名，一方为Boolean，另一方为boolean
   5. 支持别名。需要在Front继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
+
+
+
+###功能简述
+在java项目开发中，系统会进行分层，如service、dao等，在不同的部件之间需要传输对象，但这些对象很多都是意义相同，如代表一个订单，但其中的字段数量与类型不同。
+例如一个订单在dao层中取名为OrderDO，在service中就取名为OrderModel，但是其中很多类型如订单号字段的名称和类型是相同的
+但是订单的状态在数据库中使用char存储，到了dao层将会转为String，到了service需要用枚举表示
+当然也会出现含义相同，但是由于某些原因导致字段名称不同的情况
+
+
+根据上述种种需求，需要经常在两个类型之间进行转换，在参考市面上现有的解决方案无果后，有了本工具。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
