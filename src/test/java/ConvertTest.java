@@ -34,14 +34,10 @@ public class ConvertTest {
         do1.setK('a');
         System.out.println(do1);
         Convert<DO, Model> convert = new Convert<DO, Model>();
-        Model model = convert.convert2Behind(do1, Model.class);
+        Model model = convert.convert2Model(do1, Model.class);
         System.out.println(model);
-        System.out.println(convert.conver2Front(model, DO.class));
+        System.out.println(convert.conver2DO(model, DO.class));
         Model model2 = new Model();
-        Convert.copyProperties(model2, do1);
-        System.out.println(model2);
-        do1 = null;
-        System.out.println(convert.convert2Behind(do1, Model.class));
     }
 
     @Test
@@ -64,15 +60,11 @@ public class ConvertTest {
         subDo.setEight("   1  ");
         System.out.println(subDo);
         Convert<SubDo, SubModel> extendConvert = new Convert<SubDo, SubModel>(true);
-        SubModel subModel = extendConvert.convert2Behind(subDo, SubModel.class);
+        SubModel subModel = extendConvert.convert2Model(subDo, SubModel.class);
         System.out.println(subModel);
 
-        System.out.println(extendConvert.conver2Front(subModel, SubDo.class));
+        System.out.println(extendConvert.conver2DO(subModel, SubDo.class));
 
-        SubModel subModel2 = new SubModel();
-        Convert.copyProperties(subModel2, subDo, false);
-
-        System.out.println(subModel2);
     }
 
     @Test
@@ -94,9 +86,9 @@ public class ConvertTest {
         subDo.setEight("   1  ");
         System.out.println(subDo);
         Convert<SubDo, SuperModel> superSubConvert = new Convert<SubDo, SuperModel>(true);
-        SuperModel superModel = superSubConvert.convert2Behind(subDo, SuperModel.class);
+        SuperModel superModel = superSubConvert.convert2Model(subDo, SuperModel.class);
         System.out.println(superModel);
-        System.out.println(superSubConvert.conver2Front(superModel, SubDo.class));
+        System.out.println(superSubConvert.conver2DO(superModel, SubDo.class));
     }
 
     @Test
@@ -116,8 +108,8 @@ public class ConvertTest {
         classMapper.addMapper(InnerDO2.class, InnerModel2.class);
         classMapper.addMapper(InnerDO3.class, InnerModel3.class);
         Convert<InnerDO1, InnerModel1> casadeConvet = new Convert<InnerDO1, InnerModel1>(
-            classMapper);
-        System.out.println(casadeConvet.convert2Behind(innerDO1, InnerModel1.class));
+                classMapper);
+        System.out.println(casadeConvet.convert2Model(innerDO1, InnerModel1.class));
     }
 }
 

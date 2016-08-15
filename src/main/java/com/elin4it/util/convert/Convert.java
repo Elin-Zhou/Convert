@@ -10,9 +10,8 @@ import java.util.*;
 
 
 /**
-
- ##2016/1/19更新
- 支持自动拆箱装箱(之前仅支持Boolean和boolean)
+ * ##2016/1/19更新
+ * 支持自动拆箱装箱(之前仅支持Boolean和boolean)
  * byte <==> Byte
  * boolean <==> Boolean
  * short <==> Short
@@ -21,56 +20,54 @@ import java.util.*;
  * long <==>Long
  * float <==>Float
  * double <==> Double
-
-
- ##2016/1/14更新
+ * <p/>
+ * <p/>
+ * ##2016/1/14更新
  * 支持从父类字段拷贝到子类字段
  * 修复入参为null时的异常BUG
  * 修复当两个对象同时存在某一字段，但不存在set或get方法时抛出异常的BUG
-
-
-
- ##2016/1/4 更新
+ * <p/>
+ * <p/>
+ * <p/>
+ * ##2016/1/4 更新
  * 持直接父类字段的拷贝，要求该字段必须拥有set和get/is方法，同样支持各种类型的转换,默认关闭拷贝功能，开启需要设置copySuperClassFields
  * 将convert2ModelList、convert2DOList、convert2ModelPageList、convert2DOPageList设置为过时方法，请使用convert2Model和convert2DO的重载方法
-
-
- ##实现功能
+ * <p/>
+ * <p/>
+ * ##实现功能
  * 把两个类中同名且同类型的字段进行拷贝
  * 两个类中同名，一方为枚举，则尝试通过其枚举创建字段进行拷贝，默认枚举创建字段为code和value，可添加
  * 两个类中同名，一方为Money，另一方为BigDecimal
  * 两个类中同名，一方为String，另一方为Boolean/boolean
  * 两个类中同名，一方为Boolean，另一方为boolean
  * 支持别名。需要在DO继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
-
-
  *
  * @author ElinZhou
  * @version $Id: Convert.java, v 0.1 2015年10月22日 上午8:55:21 ElinZhou Exp $
  */
 public class Convert<D, M> {
 
-    private String[]     initCreateEnumStrings = { "code", "value" };
-    private List<String> createEnumStrings     = null;
+    private String[] initCreateEnumStrings = {"code", "value"};
+    private List<String> createEnumStrings = null;
     /**
      * 是否拷贝父类字段，默认关闭
      */
-    private boolean      copySuperClassFields  = false;
+    private boolean copySuperClassFields = false;
 
     /**
      * 拷贝父类字段代数，如1表示只拷贝直接父类的字段，负数表示不限,默认不限
      */
-    private int          copySuperClassGenerations = -1;
+    private int copySuperClassGenerations = -1;
     /**
      * 是否级联拷贝，默认关闭
      */
-    private boolean      copyCascade           = false;
-    private ClassMapper  classMapper;
+    private boolean copyCascade = false;
+    private ClassMapper classMapper;
 
-    private Class[]      bases                     = { byte.class, boolean.class, short.class,
-            char.class, int.class, long.class, float.class, double.class };
-    private Class[]      packages                  = { Byte.class, Boolean.class, Short.class,
-            Character.class, Integer.class, Long.class, Float.class, Double.class };
+    private Class[] bases = {byte.class, boolean.class, short.class,
+            char.class, int.class, long.class, float.class, double.class};
+    private Class[] packages = {Byte.class, Boolean.class, Short.class,
+            Character.class, Integer.class, Long.class, Float.class, Double.class};
 
     public Convert() {
         createEnumStrings = new ArrayList<String>();
@@ -113,9 +110,9 @@ public class Convert<D, M> {
      * @param copySuperClassField 是否对进行父类（直接父类）字段也拷贝
      * @throws Exception
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static void copyProperties(Object dest, Object orig, Boolean copySuperClassField)
-                                                                                            throws Exception {
+            throws Exception {
         if (dest == null || orig == null) {
             throw new Exception("参数不能为null");
         }
@@ -129,7 +126,7 @@ public class Convert<D, M> {
      * @param dest 目标对象（不为空）
      * @param orig 源对象（不为空）
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static void copyProperties(Object dest, Object orig) throws Exception {
         if (dest == null || orig == null) {
             throw new Exception("参数不能为null");
@@ -149,6 +146,7 @@ public class Convert<D, M> {
 
     /**
      * 拷贝父类字段代数，如1表示只拷贝直接父类的字段，负数表示不限
+     *
      * @param copySuperClassGenerations
      */
     public void setCopySuperClassGenerations(int copySuperClassGenerations) {
@@ -210,8 +208,8 @@ public class Convert<D, M> {
     /**
      * 将DO List转换为Model List
      *
-     * @param ins        DO List
-     * @param modelClass Model的类类型
+     * @param ins            DO List
+     * @param modelClass     Model的类类型
      * @param convertInvoker 转换执行器
      * @return
      */
@@ -250,8 +248,8 @@ public class Convert<D, M> {
     /**
      * 将DO PageList转换为Model PageList
      *
-     * @param ins        DO List
-     * @param modelClass Model的类类型
+     * @param ins            DO List
+     * @param modelClass     Model的类类型
      * @param convertInvoker 转换执行器
      * @return
      */
@@ -306,8 +304,8 @@ public class Convert<D, M> {
     /**
      * 将Model List转换为DO List
      *
-     * @param ins     Model List
-     * @param doClass DO的类类型
+     * @param ins            Model List
+     * @param doClass        DO的类类型
      * @param convertInvoker 转换执行器
      * @return
      */
@@ -346,8 +344,8 @@ public class Convert<D, M> {
     /**
      * 将Model PageList转换为DO PageList
      *
-     * @param ins     Model List
-     * @param doClass DO的类类型
+     * @param ins            Model List
+     * @param doClass        DO的类类型
      * @param convertInvoker 类型转换器
      * @return
      */
@@ -439,12 +437,14 @@ public class Convert<D, M> {
         try {
             Object out = outClass.newInstance();
             return convert(in, out, inClass, outClass);
+        } catch (InstantiationException instantiationException) {
+            throw new RuntimeException("创建对象失败,请检查" + outClass + "不为抽象类或接口,且拥有空参构造方法");
         } catch (Exception e) {
-            throw new RuntimeException("类型转换出错:", e);
+            throw new RuntimeException("类型转换出错:" + e);
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private Object convert(Object in, Object out, Class<?> inClass, Class<?> outClass) {
         try {
             if (in == null) {
@@ -498,7 +498,7 @@ public class Convert<D, M> {
                     // 把字段首字母设置为大写
                     String outFirstWord = outFieldName.substring(0, 1);
                     outFieldName = outFieldName.replaceFirst(outFirstWord,
-                        outFirstWord.toUpperCase());
+                            outFirstWord.toUpperCase());
 
                     if (outSuperClassFieldNames.containsKey(outFieldName)) {
                         Class outFieldType = outSuperClassFieldNames.get(outFieldName);
@@ -515,7 +515,7 @@ public class Convert<D, M> {
                     // 把字段首字母设置为小写
                     String outFirstWord = outFieldName.substring(0, 1);
                     outFieldName = outFieldName.replaceFirst(outFirstWord,
-                        outFirstWord.toLowerCase());
+                            outFirstWord.toLowerCase());
                     Class<?> outFieldType = outClass.getDeclaredField(outFieldName).getType();
                     // 检查out是否存在该字段，如果没有则抛异常
                     if (outFieldType != null) {
@@ -574,7 +574,7 @@ public class Convert<D, M> {
                     if (outSuperClassFieldNames.containsKey(outFieldName)) {
 
                         setValue(entry.getKey(), entry.getKey(), entry.getValue(),
-                            outSuperClassFieldNames.get(entry.getKey()), in, out);
+                                outSuperClassFieldNames.get(entry.getKey()), in, out);
 
                         //拷贝完毕，跳出当前字段
                         continue;
@@ -584,13 +584,13 @@ public class Convert<D, M> {
                     // 把字段首字母设置为小写
                     String outFirstWord = outFieldName.substring(0, 1);
                     outFieldName = outFieldName.replaceFirst(outFirstWord,
-                        outFirstWord.toLowerCase());
+                            outFirstWord.toLowerCase());
                     try {
                         Class<?> outFieldType = outClass.getDeclaredField(outFieldName).getType();
                         // 检查out是否存在该字段，如果没有则抛异常
                         if (outFieldType != null) {
                             setValue(entry.getKey(), outFieldName, entry.getValue(), outFieldType,
-                                in, out);
+                                    in, out);
                         }
                     } catch (NoSuchFieldException e) {
                         //DO NOTHING
@@ -598,7 +598,7 @@ public class Convert<D, M> {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("类型转换出错:", e);
+            throw new RuntimeException("类型转换出错:" + e);
         }
 
         return out;
@@ -615,7 +615,7 @@ public class Convert<D, M> {
      * @param out          源对象
      * @throws Exception
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void setValue(String inFieldName, String outFieldName, Class inFieldType,
                           Class outFieldType, Object in, Object out) throws Exception {
 
@@ -626,11 +626,11 @@ public class Convert<D, M> {
             // 把字段首字母设置为大写
             String outFirstWord = outFieldName.substring(0, 1);
             String outSubFieldName = outFieldName.replaceFirst(outFirstWord,
-                outFirstWord.toUpperCase());
+                    outFirstWord.toUpperCase());
 
             String inFirstWord = inFieldName.substring(0, 1);
             String inSubFieldName = inFieldName
-                .replaceFirst(inFirstWord, inFirstWord.toUpperCase());
+                    .replaceFirst(inFirstWord, inFirstWord.toUpperCase());
 
             Method getMethod;
             Method setMethod;
@@ -709,7 +709,7 @@ public class Convert<D, M> {
                         }
                     }
                 } else if ((outFieldType == String.class && (inFieldType == Boolean.class || inFieldType == boolean.class))
-                           || (inFieldType == String.class && (outFieldType == Boolean.class || outFieldType == boolean.class))) {
+                        || (inFieldType == String.class && (outFieldType == Boolean.class || outFieldType == boolean.class))) {
                     //一方为String,另一方为boolean/Boolean
                     if (outFieldType == String.class) {
                         Boolean object = (Boolean) getMethod.invoke(in);
@@ -742,7 +742,7 @@ public class Convert<D, M> {
             }
         } catch (Exception e) {
             throw new RuntimeException("数据拷贝阶段出错，源字段名：" + inFieldName + " 目标字段名：" + outFieldName
-                                       + " 错误信息:", e);
+                    + " 错误信息:" + e);
         }
 
     }
@@ -754,7 +754,7 @@ public class Convert<D, M> {
      * @param value    枚举值
      * @return 枚举
      */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private Object createEnumByValue(Class enumType, Object value) {
         if (!enumType.isEnum()) {
             return null;
@@ -845,7 +845,7 @@ public class Convert<D, M> {
                     String methodName = method.getName();
                     String fieldName;
                     if (methodName.startsWith("set") || methodName.startsWith("get")
-                        || methodName.startsWith("is")) {
+                            || methodName.startsWith("is")) {
 
                         //获得其字段名
                         if (methodName.startsWith("is")) {
@@ -1043,7 +1043,7 @@ public class Convert<D, M> {
              */
             public boolean isMapper(Class classOne, Class classTwo) {
                 return this.classOne == classOne && this.classTwo == classTwo
-                       || this.classOne == classTwo && this.classTwo == classOne;
+                        || this.classOne == classTwo && this.classTwo == classOne;
             }
 
             /**

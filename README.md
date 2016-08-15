@@ -1,32 +1,156 @@
 # Convert
-##功能：转换两个Class的数据
-##作者(Author):夕下奕林(ElinZhou)
-##原项目地址：https://github.com/Elin-Zhou/Convert
+
+用于转化两个类之间的数据
+
+作者(Author):夕下奕林(ElinZhou)
 
 
-###2016/2/1更新
-* 支持级联拷贝，例如Front1中有一个字段类型为Front2，需要把Front1转换为Behind1，Behind1中有个字段为Behind2，该字段由Front2转换而来
-* 级联拷贝不限定级联层数，但禁止循环级联，如Front1中包含Front2,Front2中包含Front1
+##项目地址
 
-#### 使用方法：
-  1. 创建转换类时传入ClassMapper类，调用该类add(Class,Class)方法添加映射关系
-  也可在spring中配置映射关系，例如：
+https://github.com/Elin-Zhou/Convert
 
 
-        <bean class="com.elin4it.util.convert.Convert$ClassMapper" id="classMapper">
-        <constructor-arg>
-        <map>
-        <!--key和value可互换，顺序无影响-->
-        <entry key="com.elin4it.pojo.Contact" value="com.elin4it.model.ContactModel"/>
-        <entry key="com.elin4it.pojo.Order" value="com.elin4it.model.OrderModel" </map>
-        </constructor-arg>
-        </bean>
+***
+
+##功能简述
+在java项目开发中，系统会进行分层，如service、dao等，在不同的部件之间需要传输对象，但这些对象很多都是意义相同，如代表一个订单，但其中的字段数量与类型不同。
+
+例如一个订单在dao层中取名为OrderDO，在service中就取名为OrderModel，但是其中很多类型如订单号字段的名称和类型是相同的
+
+但是订单的状态在数据库中使用char存储，到了dao层将会转为String，到了service需要用枚举表示
+
+当然也会出现含义相同，但是由于某些原因导致字段名称不同的情况
 
 
-  2. 通常两个类型的字段名称不同，所以Front继承ConvertAlias，调用父类add(String,String)方法设置别名
+根据上述种种需求，需要经常在两个类型之间进行转换，在参考市面上现有的解决方案无果后，有了本工具。
 
-###2016/1/19更新
-  支持自动拆箱装箱(之前仅支持Boolean和boolean)
+
+##使用方法
+
+###简单转换
+
+####创建对象：
+	Convert<AnimalDO, AnimalModel> convert = new Convert<AnimalDO, AnimalModel>();
+其中AnimalDO和AnimalModel为需要转换的类型
+
+
+####转换：
+
+	AnimalDO animalDO = new AnimalDO("aa", 2, "S");
+	System.out.println(animalDO);
+	AnimalModel animalModel = convert.convert2Model(animalDO, AnimalModel.class);
+	System.out.println(animalModel);
+	animalDO = convert.conver2DO(animalModel, AnimalDO.class);
+	System.out.println(animalDO);
+
+其中AnimalDO中拥有三个字段
+
+	private String name;
+	private int age;
+	private String size;
+	
+AnimalModel中拥有三个字段
+
+	private String name;
+	private int age;
+	private Size size;
+
+Size为表示动物大小的枚举枚举，
+
+	public enum Size {
+
+
+    	SMALL("S", "小型"),
+
+    	MEDIUM("M", "中型"),
+
+    	LARGE("L", "大型"),;
+
+    	private String code;
+    	private String message;   
+    }
+    
+上述代码输出后的结果为：
+
+
+	AnimalDO{name='aa', age=2, size='S'}
+
+	AnimalModel{name='aa', age=2, size=SMALL}
+
+	AnimalDO{name='aa', age=2, size='S'} 
+   
+   
+
+
+同理，List也可以使用重载方法进行转换
+
+
+	Convert<AnimalDO,AnimalModel>convert = new Convert<AnimalDO, AnimalModel>();
+
+	List<AnimalDO> list = new ArrayList<AnimalDO>();
+	list.add(new AnimalDO("aa",2,"S"));
+	list.add(new AnimalDO("bb",3,"M"));
+	list.add(new AnimalDO("cc",2,"S"));
+	list.add(new AnimalDO("dd",1,"L"));
+
+
+	List<AnimalModel> models = convert.convert2Model(list,AnimalModel.class);
+
+
+
+
+###别名转换
+有些情况下DO和Model中相同含义的字段的名字是不同的，所以需要使用别名进行转换。
+
+大多数情况下，DO与数据库中的字段是一一对应的，甚至有且情况下DO是由工具生成的，所以一般情况不改动DO的代码，所以在此处需要改动Model的代码。
+
+需要Model继承com.elin4it.util.convert.ConvertAlias类，然后调用其addAlias(String,String)方法，Model中的字段名称在前，DO中的字段名称在后。
+
+为了方便自动进行别名转换，所以一般在构造方法里或静态代码块里进行别名映射，例如：
+
+	{
+	    addAlias("identity", "id");
+	}
+
+
+转换时跟之前一样即可进行别名映射
+
+
+###父类字段拷贝
+
+在默认情况下，只转换当前类的字段，不对父类以及祖先类字段进行转换。
+
+如果需要转换，需要满足两点：
+
+1. 需要转换的父类（祖先类）的字段拥有set和get方法（boolean中的get可以是is）
+2. 打开拷贝父类开关
+
+打开拷贝父类开关有两种方法，其一是在构造方法中直接打开
+
+	Convert<AnimalDO,AnimalModel>convert = new Convert<AnimalDO, AnimalModel>(true);
+	
+另一种调用OpenCopySuperClassFields(boolean)方法
+
+	convert.OpenCopySuperClassFields(true);
+
+
+注意，在默认情况下，打开父类拷贝以后会将所有祖先类拥有了set和get方法的字段全部进行拷贝的，如果需要进行限制，可以调用setCopySuperClassGenerations(int)方法，设置需要拷贝几代字段，如设置1，则只拷贝当前类以及其直接父类的字段。如果要改为全部拷贝，则将其设为负数如-1即可。
+
+
+###级联拷贝
+如果在DO中有其他自定义类型DO，而且需要将其同样转换为对应Model，需要配置其映射关系。
+
+在创建Convert的时候在构造方法中传入Convert.ClassMapper对象：
+
+	Convert.ClassMapper classMapper = new Convert.ClassMapper();
+	//添加时前后顺序不影响映射
+	classMapper.addMapper(DetailDO.class, DetailModel.class);
+
+	Convert<AnimalDO, AnimalModel> convert = new Convert<AnimalDO, AnimalModel>(classMapper);
+	
+	
+###自动装箱拆箱
+DO和Model中的同名字段如果为基本类型和包装类型的关系，也可以自动转换，无需配置
 
 * byte <==> Byte
 * boolean <==> Boolean
@@ -39,45 +163,28 @@
 
 
 
+###其他枚举
+在自动枚举转换时，默认支持该枚举的构造字段为value或code，如果使用了除这两者以外的，可以调用addCreateEnumString进行添加
 
-###2016/1/14更新
-  1. 支持从父类字段拷贝到子类字段
-  2. 修复入参为null时的异常BUG
-  3. 修复当两个对象同时存在某一字段，但不存在set或get方法时抛出异常的BUG
-  4. 支持直接父类字段的拷贝，要求该字段必须拥有set和get/is方法，同样支持各种类型的转换
-  默认关闭拷贝功能，开启需要设置copySuperClassFields
-  5. 将convert2BehindList、convert2FrontList、convert2BehindPageList、convert2FrontPageList设置为过时方法，请使用convert2Behind和convert2Front的重载方法
+例如有一个表示动物类型的枚举：
 
+	public enum Type {
 
-###基础功能
-  1. 把两个类中同名且同类型的字段进行拷贝
-  2. 两个类中同名，一方为枚举，则尝试通过其枚举创建字段进行拷贝，默认枚举创建字段为code和value，可添加
-  4. 两个类中同名，一方为String，另一方为Boolean/boolean
-  5. 两个类中同名，一方为Boolean，另一方为boolean
-  5. 支持别名。需要在Front继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
+    	BIRD("B"),
+
+    	CAT("CAT"),
+
+    	;
+    	String type;
 
 
-
-###功能简述
-在java项目开发中，系统会进行分层，如service、dao等，在不同的部件之间需要传输对象，但这些对象很多都是意义相同，如代表一个订单，但其中的字段数量与类型不同。
-例如一个订单在dao层中取名为OrderDO，在service中就取名为OrderModel，但是其中很多类型如订单号字段的名称和类型是相同的
-但是订单的状态在数据库中使用char存储，到了dao层将会转为String，到了service需要用枚举表示
-当然也会出现含义相同，但是由于某些原因导致字段名称不同的情况
+    	private Type(String type){
+    	    this.type = type;
+    	}
 
 
-根据上述种种需求，需要经常在两个类型之间进行转换，在参考市面上现有的解决方案无果后，有了本工具。
+	}
+	
+需要调用Convert.addCreateEnumString方法设置
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	convert.addCreateEnumString("type");
