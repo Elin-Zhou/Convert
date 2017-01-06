@@ -10,44 +10,22 @@ import java.util.*;
 
 
 /**
- * ##2016/1/19更新
- * 支持自动拆箱装箱(之前仅支持Boolean和boolean)
- * byte <==> Byte
- * boolean <==> Boolean
- * short <==> Short
- * char <==> Character
- * int <==>Integer
- * long <==>Long
- * float <==>Float
- * double <==> Double
- * <p/>
- * <p/>
- * ##2016/1/14更新
- * 支持从父类字段拷贝到子类字段
- * 修复入参为null时的异常BUG
- * 修复当两个对象同时存在某一字段，但不存在set或get方法时抛出异常的BUG
- * <p/>
- * <p/>
- * <p/>
- * ##2016/1/4 更新
- * 持直接父类字段的拷贝，要求该字段必须拥有set和get/is方法，同样支持各种类型的转换,默认关闭拷贝功能，开启需要设置copySuperClassFields
- * 将convert2ModelList、convert2DOList、convert2ModelPageList、convert2DOPageList设置为过时方法，请使用convert2Model和convert2DO的重载方法
- * <p/>
- * <p/>
- * ##实现功能
- * 把两个类中同名且同类型的字段进行拷贝
- * 两个类中同名，一方为枚举，则尝试通过其枚举创建字段进行拷贝，默认枚举创建字段为code和value，可添加
- * 两个类中同名，一方为Money，另一方为BigDecimal
- * 两个类中同名，一方为String，另一方为Boolean/boolean
- * 两个类中同名，一方为Boolean，另一方为boolean
- * 支持别名。需要在DO继承ConvertAlias，并且在调用ConvertAlias.addAlias，在其中添加别名映射
+ * Bean之间数据拷贝
  *
  * @author ElinZhou
  * @version $Id: Convert.java, v 0.1 2015年10月22日 上午8:55:21 ElinZhou Exp $
  */
-public class Convert<D, M> {
+public class Convert<B1, B2> {
 
-    private String[] initCreateEnumStrings = {"code", "value"};
+    private static final String[] initCreateEnumStrings     = { "code", "value" };
+    private static final Class[]  bases                     = { byte.class, boolean.class,
+                                                                short.class, char.class, int.class,
+                                                                long.class, float.class,
+                                                                double.class };
+    private static final Class[]  packages                  = { Byte.class, Boolean.class,
+                                                                Short.class, Character.class,
+                                                                Integer.class, Long.class,
+                                                                Float.class, Double.class };
     private List<String> createEnumStrings = null;
     /**
      * 是否拷贝父类字段，默认关闭
@@ -58,16 +36,15 @@ public class Convert<D, M> {
      * 拷贝父类字段代数，如1表示只拷贝直接父类的字段，负数表示不限,默认不限
      */
     private int copySuperClassGenerations = -1;
+
     /**
      * 是否级联拷贝，默认关闭
      */
     private boolean copyCascade = false;
+
     private ClassMapper classMapper;
 
-    private Class[] bases = {byte.class, boolean.class, short.class,
-            char.class, int.class, long.class, float.class, double.class};
-    private Class[] packages = {Byte.class, Boolean.class, Short.class,
-            Character.class, Integer.class, Long.class, Float.class, Double.class};
+    private ConvertAlias.Tuple[]  aliases;
 
     public Convert() {
         createEnumStrings = new ArrayList<String>();
@@ -136,12 +113,20 @@ public class Convert<D, M> {
     }
 
     /**
-     * 设置为对进行父类（直接父类）字段也拷贝
-     *
-     * @param copySuperClassField
+     * 是否进行父类（直接父类）字段也拷贝
+     * @return
      */
-    public void OpenCopySuperClassFields(boolean copySuperClassField) {
-        this.copySuperClassFields = copySuperClassField;
+    public boolean isCopySuperClassFields() {
+        return copySuperClassFields;
+    }
+
+    /**
+     * 设置为是否进行父类（直接父类）字段也拷贝
+     *
+     * @param copySuperClassFields
+     */
+    public void setCopySuperClassFields(boolean copySuperClassFields) {
+        this.copySuperClassFields = copySuperClassFields;
     }
 
     /**
@@ -151,6 +136,14 @@ public class Convert<D, M> {
      */
     public void setCopySuperClassGenerations(int copySuperClassGenerations) {
         this.copySuperClassGenerations = copySuperClassGenerations;
+    }
+
+    /**
+     * 获取拷贝父类字段代数
+     * @return
+     */
+    public int getCopySuperClassGenerations() {
+        return copySuperClassGenerations;
     }
 
     /**
@@ -172,265 +165,252 @@ public class Convert<D, M> {
             addCreateEnumString(string);
     }
 
+    public void setConvertAlias(ConvertAlias.Tuple... aliases) {
+        this.aliases = aliases;
+    }
+
     /**
-     * 将DO转换为Model
+     * 将B1转换为B2
      *
-     * @param in         DO
-     * @param modelClass Model的类类型
+     * @param in         B1
+     * @param b2Class B2的类类型
      * @return
      */
     @SuppressWarnings("unchecked")
-    public M convert2Model(D in, Class<M> modelClass) {
+    public B2 convert2B2(B1 in, Class<B2> b2Class) {
         if (in == null) {
             return null;
         }
-        return (M) convert(in, in.getClass(), modelClass);
+        return (B2) convert(in, in.getClass(), b2Class);
     }
 
     /**
-     * 将DO List转换为Model List
+     * 将B1 List转换为B2 List
      *
-     * @param ins        DO List
-     * @param modelClass Model的类类型
+     * @param ins         B1
+     * @param b2Class B2的类类型
      * @return
      */
-    public List<M> convert2Model(List<D> ins, Class<M> modelClass) {
+    public List<B2> convert2B2(List<B1> ins, Class<B2> b2Class) {
         if (ins == null) {
             return null;
         }
-        List<M> outs = new ArrayList<M>();
-        for (D in : ins) {
-            outs.add(convert2Model(in, modelClass));
+        List<B2> outs = new ArrayList<B2>();
+        for (B1 in : ins) {
+            outs.add(convert2B2(in, b2Class));
         }
         return outs;
     }
 
     /**
-     * 将DO List转换为Model List
+     * 将B1 List转换为B2 List
      *
-     * @param ins            DO List
-     * @param modelClass     Model的类类型
+     * @param ins            B1 List
+     * @param b2Class     B2的类类型
      * @param convertInvoker 转换执行器
      * @return
      */
-    public List<M> convert2Model(List<D> ins, Class<M> modelClass, ConvertInvoker<M> convertInvoker) {
+    public List<B2> convert2B2(List<B1> ins, Class<B2> b2Class, ConvertInvoker<B2> convertInvoker) {
         if (ins == null) {
             return null;
         }
-        List<M> outs = new ArrayList<M>();
-        for (D in : ins) {
-            M m = convert2Model(in, modelClass);
-            m = convertInvoker.invoke(m);
-            outs.add(m);
+        List<B2> outs = new ArrayList<B2>();
+        for (B1 in : ins) {
+            B2 b2 = convert2B2(in, b2Class);
+            b2 = convertInvoker.invoke(b2);
+            outs.add(b2);
         }
         return outs;
     }
 
     /**
-     * 将DO PageList转换为Model PageList
+     * 将B1 PageList转换为B2 PageList
      *
-     * @param ins        DO List
-     * @param modelClass Model的类类型
+     * @param ins        B1 List
+     * @param b2Class B2的类类型
      * @return
      */
-    public PageList<M> convert2Model(PageList<D> ins, Class<M> modelClass) {
+    public PageList<B2> convert2B2(PageList<B1> ins, Class<B2> b2Class) {
         if (ins == null) {
             return null;
         }
-        PageList<M> outs = new PageList<M>();
+        PageList<B2> outs = new PageList<B2>();
         outs.setPaginator(ins.getPaginator());
-        for (D in : ins) {
-            outs.add(convert2Model(in, modelClass));
+        for (B1 in : ins) {
+            outs.add(convert2B2(in, b2Class));
         }
         return outs;
     }
 
     /**
-     * 将DO PageList转换为Model PageList
+     * 将B1 PageList转换为B2 PageList
      *
-     * @param ins            DO List
-     * @param modelClass     Model的类类型
+     * @param ins            B1 List
+     * @param b2Class     B2的类类型
      * @param convertInvoker 转换执行器
      * @return
      */
-    public PageList<M> convert2Model(PageList<D> ins, Class<M> modelClass,
-                                     ConvertInvoker<M> convertInvoker) {
+    public PageList<B2> convert2B2(PageList<B1> ins, Class<B2> b2Class,
+                                   ConvertInvoker<B2> convertInvoker) {
         if (ins == null) {
             return null;
         }
-        PageList<M> outs = new PageList<M>();
+        PageList<B2> outs = new PageList<B2>();
         outs.setPaginator(ins.getPaginator());
-        for (D in : ins) {
-            M m = convert2Model(in, modelClass);
-            m = convertInvoker.invoke(m);
-            outs.add(m);
+        for (B1 in : ins) {
+            B2 b2 = convert2B2(in, b2Class);
+            b2 = convertInvoker.invoke(b2);
+            outs.add(b2);
         }
         return outs;
     }
 
     /**
-     * 将Model转换为DO
+     * 将B2转换为B2
      *
-     * @param in      Model
-     * @param doClass DO的类类型
+     * @param in      B2
+     * @param b1Class B1的类类型
      * @return
      */
     @SuppressWarnings("unchecked")
-    public D conver2DO(M in, Class<D> doClass) {
+    public B1 convert2B1(B2 in, Class<B1> b1Class) {
         if (in == null) {
             return null;
         }
-        return (D) convert(in, in.getClass(), doClass);
+        return (B1) convert(in, in.getClass(), b1Class);
     }
 
     /**
-     * 将Model List转换为DO List
+     * 将B2 List转换为B1 List
      *
-     * @param ins     Model List
-     * @param doClass DO的类类型
+     * @param ins     B2 List
+     * @param b1Class B1的类类型
      * @return
      */
-    public List<D> conver2DO(List<M> ins, Class<D> doClass) {
+    public List<B1> convert2B1(List<B2> ins, Class<B1> b1Class) {
         if (ins == null) {
             return null;
         }
-        List<D> outs = new ArrayList<D>();
-        for (M in : ins) {
-            outs.add(conver2DO(in, doClass));
+        List<B1> outs = new ArrayList<B1>();
+        for (B2 in : ins) {
+            outs.add(convert2B1(in, b1Class));
         }
         return outs;
     }
 
     /**
-     * 将Model List转换为DO List
+     * 将B2 List转换为B1 List
      *
-     * @param ins            Model List
-     * @param doClass        DO的类类型
+     * @param ins            B2 List
+     * @param b1Class        B1的类类型
      * @param convertInvoker 转换执行器
      * @return
      */
-    public List<D> conver2DO(List<M> ins, Class<D> doClass, ConvertInvoker<D> convertInvoker) {
+    public List<B1> convert2B1(List<B2> ins, Class<B1> b1Class, ConvertInvoker<B1> convertInvoker) {
         if (ins == null) {
             return null;
         }
-        List<D> outs = new ArrayList<D>();
-        for (M in : ins) {
-            D d = conver2DO(in, doClass);
-            d = convertInvoker.invoke(d);
-            outs.add(d);
+        List<B1> outs = new ArrayList<B1>();
+        for (B2 in : ins) {
+            B1 b1 = convert2B1(in, b1Class);
+            b1 = convertInvoker.invoke(b1);
+            outs.add(b1);
         }
         return outs;
     }
 
     /**
-     * 将Model PageList转换为DO PageList
+     * 将B2 PageList转换为B1 PageList
      *
-     * @param ins     Model List
-     * @param doClass DO的类类型
+     * @param ins     B2 List
+     * @param b1Class B1的类类型
      * @return
      */
-    public PageList<D> conver2DO(PageList<M> ins, Class<D> doClass) {
+    public PageList<B1> convert2B1(PageList<B2> ins, Class<B1> b1Class) {
         if (ins == null) {
             return null;
         }
-        PageList<D> outs = new PageList<D>();
+        PageList<B1> outs = new PageList<B1>();
         outs.setPaginator(ins.getPaginator());
-        for (M in : ins) {
-            outs.add(conver2DO(in, doClass));
+        for (B2 in : ins) {
+            outs.add(convert2B1(in, b1Class));
         }
         return outs;
     }
 
     /**
-     * 将Model PageList转换为DO PageList
+     * 将B2 PageList转换为B1 PageList
      *
-     * @param ins            Model List
-     * @param doClass        DO的类类型
+     * @param ins            B2 List
+     * @param b1Class        B1的类类型
      * @param convertInvoker 类型转换器
      * @return
      */
-    public PageList<D> conver2DO(PageList<M> ins, Class<D> doClass, ConvertInvoker<D> convertInvoker) {
+    public PageList<B1> convert2B1(PageList<B2> ins, Class<B1> b1Class,
+                                   ConvertInvoker<B1> convertInvoker) {
         if (ins == null) {
             return null;
         }
-        PageList<D> outs = new PageList<D>();
+        PageList<B1> outs = new PageList<B1>();
         outs.setPaginator(ins.getPaginator());
-        for (M in : ins) {
-            D d = conver2DO(in, doClass);
-            d = convertInvoker.invoke(d);
-            outs.add(d);
+        for (B2 in : ins) {
+            B1 b1 = convert2B1(in, b1Class);
+            b1 = convertInvoker.invoke(b1);
+            outs.add(b1);
         }
         return outs;
     }
 
-    /**
-     * 将DO List转换为Model List
-     *
-     * @param ins        DO List
-     * @param modelClass Model的类类型
-     * @return
-     * @deprecated 已过时方法，请使用conver2Model重载方法
-     */
-    @Deprecated
-    public List<M> convert2ModelList(List<D> ins, Class<M> modelClass) {
-        List<M> outs = new ArrayList<M>();
-        for (D in : ins) {
-            outs.add(convert2Model(in, modelClass));
+    public static class Builder<B1, B2> {
+
+        private boolean              copySuperClassFields      = false;
+        private int                  copySuperClassGenerations = -1;
+        private boolean              copyCascade               = false;
+        private ClassMapper          classMapper;
+        private ConvertAlias.Tuple[] aliases;
+
+        public Builder<B1, B2> copySuperClassFields(boolean val) {
+            copySuperClassFields = val;
+            return this;
         }
-        return outs;
+
+        public Builder<B1, B2> copySuperClassGenerations(int val) {
+            copySuperClassGenerations = val;
+            return this;
+        }
+
+        public Builder<B1, B2> copyCascade(boolean val) {
+            copyCascade = val;
+            return this;
+        }
+
+        public Builder<B1, B2> classMapper(ClassMapper val) {
+            classMapper = val;
+            return this;
+        }
+
+        public Builder<B1, B2> aliases(ConvertAlias.Tuple... val) {
+            aliases = val;
+            return this;
+        }
+
+        public Convert<B1, B2> build() {
+            return new Convert<B1, B2>(this);
+        }
+
     }
 
     /**
-     * 将Model List转换为DO List
-     *
-     * @param ins     Model List
-     * @param doClass DO的类类型
-     * @return
-     * @deprecated 已过时方法，请使用conver2DO重载方法
+     * 通过构造器构建Convert
+     * @param builder
      */
-    @Deprecated
-    public List<D> convert2DOList(List<M> ins, Class<D> doClass) {
-        List<D> outs = new ArrayList<D>();
-        for (M in : ins) {
-            outs.add(conver2DO(in, doClass));
-        }
-        return outs;
-    }
-
-    /**
-     * 将DO PageList转换为Model PageList
-     *
-     * @param ins        DO List
-     * @param modelClass Model的类类型
-     * @return Model PageList
-     * @deprecated 已过时方法，请使用conver2Model重载方法
-     */
-    @Deprecated
-    public PageList<M> convert2ModelPageList(PageList<D> ins, Class<M> modelClass) {
-        PageList<M> outs = new PageList<M>();
-        outs.setPaginator(ins.getPaginator());
-        for (D in : ins) {
-            outs.add(convert2Model(in, modelClass));
-        }
-        return outs;
-    }
-
-    /**
-     * 将Model PageList转换为DO PageList
-     *
-     * @param ins     Model List
-     * @param doClass DO的类类型
-     * @return
-     * @deprecated 已过时方法，请使用conver2DO重载方法
-     */
-    @Deprecated
-    public PageList<D> convert2DOPageList(PageList<M> ins, Class<D> doClass) {
-        PageList<D> outs = new PageList<D>();
-        outs.setPaginator(ins.getPaginator());
-        for (M in : ins) {
-            outs.add(conver2DO(in, doClass));
-        }
-        return outs;
+    private Convert(Builder builder) {
+        this();
+        copySuperClassFields = builder.copySuperClassFields;
+        copySuperClassGenerations = builder.copySuperClassGenerations;
+        copyCascade = builder.copyCascade;
+        classMapper = builder.classMapper;
+        aliases = builder.aliases;
     }
 
     private Object convert(Object in, Class<?> inClass, Class<?> outClass) {
@@ -460,37 +440,8 @@ public class Convert<D, M> {
             // 遍历所有字段
             for (Field field : fields) {
                 String inFieldName = field.getName();
-                String outFieldName = inFieldName;
-                //判断是否使用了别名
-                List<ConvertAlias.Tuple> aliasList;
-                if (in instanceof ConvertAlias) {
-                    //如果inClass继承自ConvertAlias，则inClass为DO
+                String outFieldName = getOutFieldName(in, out, inFieldName);
 
-                    Method getAliasMethod = inClass.getMethod("getAliasList");
-                    //获得别名列表
-                    aliasList = (List<ConvertAlias.Tuple>) getAliasMethod.invoke(in);
-
-                    for (ConvertAlias.Tuple tuple : aliasList) {
-                        if (tuple.getDoFieldName().equals(inFieldName)) {
-                            outFieldName = tuple.getModelFieldName();
-                            break;
-                        }
-                    }
-
-                } else if (out instanceof ConvertAlias) {
-                    //如果outClass继承自ConvertAlias，则outClass为DO
-
-                    Method getAliasMethod = outClass.getMethod("getAliasList");
-                    //获得别名列表
-                    aliasList = (List<ConvertAlias.Tuple>) getAliasMethod.invoke(out);
-
-                    for (ConvertAlias.Tuple tuple : aliasList) {
-                        if (tuple.getModelFieldName().equals(inFieldName)) {
-                            outFieldName = tuple.getDoFieldName();
-                            break;
-                        }
-                    }
-                }
                 if (copySuperClassFields) {
                     //判断完别名，此时outFieldName中保存了当前字段对应的out字段名
                     //判断out中是否存在outFieldName字段
@@ -536,38 +487,7 @@ public class Convert<D, M> {
 
                 //遍历in的父类字段
                 for (Map.Entry<String, Class> entry : entrySet) {
-                    String outFieldName = entry.getKey();
-                    //判断是否使用了别名
-                    List<ConvertAlias.Tuple> aliasList;
-                    if (in instanceof ConvertAlias) {
-                        //如果inClass继承自ConvertAlias，则inClass为DO
-
-                        Method getAliasMethod = inClass.getMethod("getAliasList");
-                        //获得别名列表
-                        aliasList = (List<ConvertAlias.Tuple>) getAliasMethod.invoke(in);
-
-                        for (ConvertAlias.Tuple tuple : aliasList) {
-                            //如果别名列表中存在in的当前字段
-                            if (tuple.getDoFieldName().equals(entry.getKey())) {
-                                outFieldName = tuple.getModelFieldName();
-                                break;
-                            }
-                        }
-
-                    } else if (out instanceof ConvertAlias) {
-                        //如果outClass继承自ConvertAlias，则outClass为DO
-
-                        Method getAliasMethod = outClass.getMethod("getAliasList");
-                        //获得别名列表
-                        aliasList = (List<ConvertAlias.Tuple>) getAliasMethod.invoke(out);
-
-                        for (ConvertAlias.Tuple tuple : aliasList) {
-                            if (tuple.getModelFieldName().equals(entry.getKey())) {
-                                outFieldName = tuple.getDoFieldName();
-                                break;
-                            }
-                        }
-                    }
+                    String outFieldName = getOutFieldName(in, out, entry.getKey());
 
                     //判断完别名，此时outFieldName中保存了当前字段对应的out字段名
                     //判断out中是否存在outFieldName字段
@@ -602,6 +522,52 @@ public class Convert<D, M> {
         }
 
         return out;
+    }
+
+    /**
+     * 通过判断in和out是否继承ConvertAlias来决定out的字段名称
+     * @param in
+     * @param out
+     * @param inFieldName
+     * @return
+     */
+    private String getOutFieldName(Object in, Object out, String inFieldName) {
+
+        String outFieldName = inFieldName;
+        List<ConvertAlias.Tuple> aliasList = new ArrayList<ConvertAlias.Tuple>();
+
+        if (aliases != null && aliases.length != 0) {
+            aliasList.addAll(Arrays.asList(aliases));
+        }
+
+        //判断是否使用了别名
+        if (in instanceof ConvertAlias || out instanceof ConvertAlias) {
+            Object temp;
+            if (in instanceof ConvertAlias) {
+                temp = in;
+            } else {
+                temp = out;
+            }
+
+            //获得别名列表
+            List<ConvertAlias.Tuple> tempList = ((ConvertAlias) temp).getAliasList();
+
+            if (tempList != null && !tempList.isEmpty()) {
+                aliasList.addAll(tempList);
+            }
+
+        }
+
+        for (ConvertAlias.Tuple tuple : aliasList) {
+            if (tuple.getB1FieldName().equals(inFieldName)) {
+                outFieldName = tuple.getB2FieldName();
+                break;
+            } else if (tuple.getB2FieldName().equals(inFieldName)) {
+                outFieldName = tuple.getB1FieldName();
+                break;
+            }
+        }
+        return outFieldName;
     }
 
     /**
@@ -736,7 +702,7 @@ public class Convert<D, M> {
 
                     Object inFieldObject = getMethod.invoke(in);
                     Convert innerConver = new Convert(classMapper);
-                    Object outFieldObject = innerConver.convert2Model(inFieldObject, outFieldType);
+                    Object outFieldObject = innerConver.convert2B2(inFieldObject, outFieldType);
                     setMethod.invoke(out, outFieldObject);
                 }
             }

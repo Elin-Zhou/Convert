@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 public class DO extends ConvertAlias {
-    private int        a;
+    private int        aa;
     private String     b;
     private Date c;
     private boolean    d;
@@ -16,16 +16,15 @@ public class DO extends ConvertAlias {
     private Character  k;
 
     {
-        this.addAlias("a", "aa");
-        this.addAlias("gg", "g");
+        addAlias("gg", "g");
     }
 
-    public int getA() {
-        return a;
+    public int getAa() {
+        return aa;
     }
 
-    public void setA(int a) {
-        this.a = a;
+    public void setAa(int aa) {
+        this.aa = aa;
     }
 
     public String getB() {
@@ -72,8 +71,8 @@ public class DO extends ConvertAlias {
         return gg;
     }
 
-    public void setGg(BigDecimal g) {
-        this.gg = g;
+    public void setGg(BigDecimal gg) {
+        this.gg = gg;
     }
 
     public String getH() {
@@ -102,8 +101,53 @@ public class DO extends ConvertAlias {
 
     @Override
     public String toString() {
-        return "DO{" + "a=" + a + ", b='" + b + '\'' + ", c=" + c + ", d=" + d + ", e=" + e
+        return "DO{" + "aa=" + aa + ", b='" + b + '\'' + ", c=" + c + ", d=" + d + ", e=" + e
                + ", f='" + f + '\'' + ", gg=" + gg + ", h='" + h + '\'' + ", j=" + j + ", k=" + k
                + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        DO aDo = (DO) o;
+
+        if (aa != aDo.aa)
+            return false;
+        if (d != aDo.d)
+            return false;
+        if (j != aDo.j)
+            return false;
+        if (b != null ? !b.equals(aDo.b) : aDo.b != null)
+            return false;
+        if (c != null ? !c.equals(aDo.c) : aDo.c != null)
+            return false;
+        if (e != null ? !e.equals(aDo.e) : aDo.e != null)
+            return false;
+        if (f != null ? !f.equals(aDo.f) : aDo.f != null)
+            return false;
+        if (gg != null ? !gg.equals(aDo.gg) : aDo.gg != null)
+            return false;
+        if (h != null ? !h.equals(aDo.h) : aDo.h != null)
+            return false;
+        return k != null ? k.equals(aDo.k) : aDo.k == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = aa;
+        result = 31 * result + (b != null ? b.hashCode() : 0);
+        result = 31 * result + (c != null ? c.hashCode() : 0);
+        result = 31 * result + (d ? 1 : 0);
+        result = 31 * result + (e != null ? e.hashCode() : 0);
+        result = 31 * result + (f != null ? f.hashCode() : 0);
+        result = 31 * result + (gg != null ? gg.hashCode() : 0);
+        result = 31 * result + (h != null ? h.hashCode() : 0);
+        result = 31 * result + j;
+        result = 31 * result + (k != null ? k.hashCode() : 0);
+        return result;
     }
 }

@@ -4,12 +4,12 @@
  * Copyright (c) 2014-2016 All Rights Reserved.
  */
 
-import java.math.BigDecimal;
-import java.util.Date;
-
+import com.elin4it.util.convert.Convert;
+import com.elin4it.util.convert.ConvertAlias;
 import org.junit.Test;
 
-import com.elin4it.util.convert.Convert;
+import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * @author ElinZhou
@@ -20,24 +20,29 @@ public class ConvertTest {
     @Test
     public void baseConvert() {
         System.out.println(" /**测试转换与别名**/");
-        /**测试转换与别名**/
         DO do1 = new DO();
-        do1.setA(1);
+
+        do1.setAa(1);
         do1.setB("2");
         do1.setC(new Date());
         do1.setD(true);
-        do1.setE(new BigDecimal(3));
+        do1.setE(new BigDecimal(3.2));
         do1.setF("1");
         do1.setGg(new BigDecimal(1.5));
-        do1.setH("  1  ");
+        do1.setH("1");
         do1.setJ(111);
         do1.setK('a');
+
         System.out.println(do1);
         Convert<DO, Model> convert = new Convert<DO, Model>();
-        Model model = convert.convert2Model(do1, Model.class);
+        convert.setConvertAlias(new ConvertAlias.Tuple[] { new ConvertAlias.Tuple("a", "aa") });
+        Model model = convert.convert2B2(do1, Model.class);
         System.out.println(model);
-        System.out.println(convert.conver2DO(model, DO.class));
-        Model model2 = new Model();
+
+        DO do2 = convert.convert2B1(model, DO.class);
+        System.out.println(do2);
+
+        assert do2.equals(do1);
     }
 
     @Test
@@ -59,11 +64,13 @@ public class ConvertTest {
         subDo.setSeven(new BigDecimal(1.5));
         subDo.setEight("   1  ");
         System.out.println(subDo);
-        Convert<SubDo, SubModel> extendConvert = new Convert<SubDo, SubModel>(true);
-        SubModel subModel = extendConvert.convert2Model(subDo, SubModel.class);
+        //        Convert<SubDo, SubModel> extendConvert = new Convert<SubDo, SubModel>(true);
+        Convert<SubDo, SubModel> extendConvert = new Convert.Builder<SubDo, SubModel>()
+            .copySuperClassFields(true).build();
+        SubModel subModel = extendConvert.convert2B2(subDo, SubModel.class);
         System.out.println(subModel);
 
-        System.out.println(extendConvert.conver2DO(subModel, SubDo.class));
+        System.out.println(extendConvert.convert2B1(subModel, SubDo.class));
 
     }
 
@@ -86,9 +93,9 @@ public class ConvertTest {
         subDo.setEight("   1  ");
         System.out.println(subDo);
         Convert<SubDo, SuperModel> superSubConvert = new Convert<SubDo, SuperModel>(true);
-        SuperModel superModel = superSubConvert.convert2Model(subDo, SuperModel.class);
+        SuperModel superModel = superSubConvert.convert2B2(subDo, SuperModel.class);
         System.out.println(superModel);
-        System.out.println(superSubConvert.conver2DO(superModel, SubDo.class));
+        System.out.println(superSubConvert.convert2B1(superModel, SubDo.class));
     }
 
     @Test
@@ -109,7 +116,7 @@ public class ConvertTest {
         classMapper.addMapper(InnerDO3.class, InnerModel3.class);
         Convert<InnerDO1, InnerModel1> casadeConvet = new Convert<InnerDO1, InnerModel1>(
                 classMapper);
-        System.out.println(casadeConvet.convert2Model(innerDO1, InnerModel1.class));
+        System.out.println(casadeConvet.convert2B2(innerDO1, InnerModel1.class));
     }
 }
 

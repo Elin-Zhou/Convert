@@ -2,23 +2,24 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 public class Model {
-    private int                aa;
+    private int                a;
     private String             b;
     private Date c;
     private Boolean            d;
     private BigDecimal e;
     private BlendingStatusEnum f;
+    private BigDecimal         g;
     private boolean            h;
     private int                i;
     private Integer            j;
     private char               k;
 
-    public int getAa() {
-        return aa;
+    public int getA() {
+        return a;
     }
 
-    public void setAa(int a) {
-        this.aa = a;
+    public void setA(int a) {
+        this.a = a;
     }
 
     public String getB() {
@@ -61,6 +62,14 @@ public class Model {
         this.f = f;
     }
 
+    public BigDecimal getG() {
+        return g;
+    }
+
+    public void setG(BigDecimal g) {
+        this.g = g;
+    }
+
     public boolean isH() {
         return h;
     }
@@ -99,7 +108,7 @@ public class Model {
 
     @Override
     public String toString() {
-        return "Model{" + "aa=" + aa + ", b='" + b + '\'' + ", c=" + c + ", d=" + d + ", e=" + e
-                + ", f=" + f + ", h=" + h + ", i=" + i + ", j=" + j + ", k=" + k + '}';
+        return "Model{" + "a=" + a + ", b='" + b + '\'' + ", c=" + c + ", d=" + d + ", e=" + e
+               + ", f=" + f + ", g=" + g + ", h=" + h + ", i=" + i + ", j=" + j + ", k=" + k + '}';
     }
 }
