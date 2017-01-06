@@ -38,9 +38,9 @@ https://github.com/Elin-Zhou/Convert
 
 	AnimalDO animalDO = new AnimalDO("aa", 2, "S");
 	System.out.println(animalDO);
-	AnimalModel animalModel = convert.convert2Model(animalDO, AnimalModel.class);
+	AnimalModel animalModel = convert.convert2B2(animalDO, AnimalModel.class);
 	System.out.println(animalModel);
-	animalDO = convert.conver2DO(animalModel, AnimalDO.class);
+	animalDO = convert.convert2B1(animalModel, AnimalDO.class);
 	System.out.println(animalDO);
 
 其中AnimalDO中拥有三个字段
@@ -94,13 +94,13 @@ Size为表示动物大小的枚举枚举，
 	list.add(new AnimalDO("dd",1,"L"));
 
 
-	List<AnimalModel> models = convert.convert2Model(list,AnimalModel.class);
+	List<AnimalModel> models = convert.convert2B2(list,AnimalModel.class);
 
 
 
 
 ###别名转换
-有些情况下DO和Model中相同含义的字段的名字是不同的，所以需要使用别名进行转换。
+有些情况下两个bean中相同含义的字段的名字是不同的，所以需要使用别名进行转换。
 
 大多数情况下，DO与数据库中的字段是一一对应的，甚至有且情况下DO是由工具生成的，所以一般情况不改动DO的代码，所以在此处需要改动Model的代码。
 
